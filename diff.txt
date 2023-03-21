@@ -176,31 +176,98 @@ CREATE TABLE IF NOT EXISTS `assistant_roster_template` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='班级助手_值日表_模板表';
 
 ALTER TABLE `authorization`
-  DROP INDEX `uniq_item`,
-  ADD KEY `idx_teacher` (`teacher_id`,`create_date`),
+  DROP INDEX `idx_item`,
   DROP INDEX `idx_order`,
-  ADD KEY `idx_order` (`order_id`,`order_item_id`);
+  ADD KEY `idx_order` (`order_id`,`order_item_id`),
+  ADD KEY `idx_teacher` (`teacher_id`,`create_date`);
 
-ALTER TABLE `order_info`
-  MODIFY COLUMN `order_finish_time` datetime NULL DEFAULT NULL COMMENT '订单完成时间' AFTER `expire_time`,
-  MODIFY COLUMN `spread_flag` tinyint(4) NOT NULL DEFAULT '0' COMMENT '是否推广订单标志（0：待定，1：属于推广订单 2：不属于推广订单）' AFTER `order_finish_time`,
-  MODIFY COLUMN `status` tinyint(4) NOT NULL DEFAULT '1' COMMENT '状态（0：停用，1：启用）' AFTER `spread_flag`,
-  MODIFY COLUMN `create_user_code` varchar(36) NOT NULL DEFAULT '' COMMENT '创建人' AFTER `status`,
-  MODIFY COLUMN `create_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间' AFTER `create_user_code`,
-  MODIFY COLUMN `update_user_code` varchar(36) NOT NULL DEFAULT '' COMMENT '修改人' AFTER `create_date`,
-  MODIFY COLUMN `update_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间' AFTER `update_user_code`,
-  MODIFY COLUMN `after_discount_amount` decimal(20,2) NOT NULL COMMENT '订单折后金额' AFTER `update_date`;
+ALTER TABLE `kid_parent`
+  ADD COLUMN `student_id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '学生id' AFTER `parent_id`,
+  ADD COLUMN `clazz_id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '班级id' AFTER `student_id`,
+  DROP INDEX `uniq_kid_parent`;
 
-ALTER TABLE `payment`
-  MODIFY COLUMN `payment_amount` decimal(20,2) NOT NULL COMMENT '支付金额' AFTER `payment_type`;
+CREATE TABLE IF NOT EXISTS `link_game_result_statistic` (
+  `id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '主键id',
+  `student_result_id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '学生答题结果表',
+  `topic_id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '主题id',
+  `student_id` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '学生id',
+  `parent_id` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '家长id',
+  `correct_quantity` int(10) NOT NULL DEFAULT '0' COMMENT '正确数量',
+  `wrong_quantity` int(10) NOT NULL DEFAULT '0' COMMENT '错误数量',
+  `cost_time` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '消耗的时间',
+  `status` tinyint(4) NOT NULL DEFAULT '1' COMMENT '状态（0：停用，1：启用）',
+  `create_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `create_user_code` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '创建人',
+  `update_user_code` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '修改人',
+  `update_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
+  `clazz_id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '班级id',
+  `teacher_id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '教师Id',
+  `topic_status` tinyint(4) NOT NULL DEFAULT '0' COMMENT '是否完成（0：去完成，1：已结束，2：已完成）',
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='帐号';
+
+CREATE TABLE IF NOT EXISTS `link_game_title` (
+  `id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '主键id',
+  `title` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '题目名称',
+  `topic_id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '主题id',
+  `english_word` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '英文名称',
+  `chinese_words` varchar(2000) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '中文名称，多个用|分割',
+  `img_paths` varchar(2000) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '图片路径，多个用|分割，与chinese_words一一对应',
+  `pid` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '父id',
+  `title_index` int(10) NOT NULL DEFAULT '1' COMMENT '序号',
+  `status` tinyint(4) NOT NULL DEFAULT '1' COMMENT '状态（0：停用，1：启用）',
+  `create_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `create_user_code` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '创建人',
+  `update_user_code` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '修改人',
+  `update_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
+  `right_answer` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '正确的回答 word和img用竖线隔开',
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='连连看题目';
+
+CREATE TABLE IF NOT EXISTS `link_game_title_student_result` (
+  `id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '主键id',
+  `title_id` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '题目名称',
+  `topic_id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '主题id',
+  `status` tinyint(4) NOT NULL DEFAULT '1' COMMENT '状态（0：停用，1：启用）',
+  `reality_answer` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '学生实际的回答',
+  `create_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `create_user_code` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '创建人',
+  `update_user_code` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '修改人',
+  `update_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
+  `clazz_id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '班级id',
+  `teacher_id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '教师Id',
+  `student_id` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '学生id',
+  `parent_id` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '家长id',
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='连连看题目';
+
+CREATE TABLE IF NOT EXISTS `link_game_topic` (
+  `id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '主题id',
+  `topic_name` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '主题名称',
+  `english_word` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '英文名称',
+  `img_path` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '图片路径',
+  `methods` tinyint(4) NOT NULL DEFAULT '1' COMMENT '出题方式（1：按主题出题，2：自由出题，3：我的主题）',
+  `quote_count` int(4) NOT NULL DEFAULT '1' COMMENT '引用数据',
+  `topic_type` int(4) NOT NULL DEFAULT '1' COMMENT '主题类型（1：课堂，2：课后）',
+  `pushed` int(4) NOT NULL DEFAULT '1' COMMENT '是否发送（0：未发送，1：已发送）',
+  `last_commit_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '最后提交时间',
+  `status` tinyint(4) NOT NULL DEFAULT '1' COMMENT '状态（0：停用，1：启用）',
+  `create_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `create_user_code` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '创建人',
+  `update_user_code` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '修改人',
+  `update_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
+  `teacher_id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '教师Id',
+  `time` int(10) NOT NULL COMMENT '答题时长',
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='连连看主题';
 
 ALTER TABLE `platform_message_receiver`
-  DROP INDEX `idx_message`,
-  ADD KEY `uniq_message` (`platform_message_id`);
+  MODIFY COLUMN `user_type_code` varchar(36) NOT NULL COMMENT '用户类型编码1教师2家长' AFTER `account_id`,
+  DROP INDEX `uniq_message`,
+  ADD KEY `idx_message` (`platform_message_id`);
 
 ALTER TABLE `platform_message_sender`
-  DROP INDEX `idx_message`,
-  ADD KEY `uniq_message` (`platform_message_id`);
+  MODIFY COLUMN `user_type_code` varchar(36) NOT NULL COMMENT '用户类型编码1教师2家长' AFTER `account_id`;
 
 CREATE TABLE IF NOT EXISTS `spell_answer` (
   `id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '主键',
@@ -231,13 +298,12 @@ CREATE TABLE IF NOT EXISTS `spell_emigrated` (
 CREATE TABLE IF NOT EXISTS `spell_parent_port_answer` (
   `id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '主键',
   `send_port_record_id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '发送到端表主键id',
-  `untility_id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '答题选择的选项(选项表id)',
   `class_id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '班级id',
   `parent_id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '家长ID',
   `student_id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '学生id',
   `is_finish` tinyint(4) DEFAULT '0' COMMENT '是否完成，0未完成 1继续闯关 2已完成 3已结束',
-  `use_time` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '用时',
-  `score` int(11) NOT NULL COMMENT '得分',
+  `use_time` int(11) DEFAULT NULL COMMENT '用时(秒-前端换算成分:秒显示)',
+  `score` int(11) DEFAULT '0' COMMENT '得分',
   `status` tinyint(4) NOT NULL DEFAULT '1' COMMENT '状态（0：停用，1：启用 2:逻辑删除）',
   `create_user_code` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '创建人',
   `create_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
@@ -246,11 +312,25 @@ CREATE TABLE IF NOT EXISTS `spell_parent_port_answer` (
 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='拼音闯关-家长端答题表';
 
+CREATE TABLE IF NOT EXISTS `spell_parent_port_answer_detail` (
+  `id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '主键',
+  `parent_port_answer_id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '家长端答题表id',
+  `topic_id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '题目表id',
+  `untility_id` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '答题选择的选项(选项表id)',
+  `use_time` int(11) DEFAULT NULL COMMENT '用时(秒-前端换算成分:秒显示)',
+  `create_user_code` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '创建人',
+  `create_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_user_code` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '修改人',
+  `update_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '修改时间',
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='拼音闯关-家长端答题详情表';
+
 CREATE TABLE IF NOT EXISTS `spell_send_port_record` (
   `id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '主键',
   `emigrated_id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '闯关表主键id',
   `emigrated_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '闯关名称(学生-课堂练习,家长-课后作业)',
   `port_mark` tinyint(4) NOT NULL COMMENT '标识发送到哪端 1学生端 2家长端',
+  `question_count` tinyint(4) NOT NULL COMMENT '发送时题量(因题量会变,以发送时为准)',
   `class_id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '发送到哪个班级',
   `push_date` datetime NULL DEFAULT NULL COMMENT '发布时间',
   `deadline_date` datetime NULL DEFAULT NULL COMMENT '截止时间',
@@ -259,15 +339,16 @@ CREATE TABLE IF NOT EXISTS `spell_send_port_record` (
   `create_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `update_user_code` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '修改人',
   `update_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '修改时间',
+  `teacher_id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '发送人(教师id)',
 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='拼音闯关-发送到端记录表';
 
 CREATE TABLE IF NOT EXISTS `spell_student_score` (
   `id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '主键',
-  `emigrated_id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '闯关表主键id',
+  `send_port_id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '发送到端表主键id',
   `class_id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '班级ID',
   `student_id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '学生id',
-  `score` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '得分',
+  `score` int(4) NOT NULL COMMENT '得分',
   `status` tinyint(4) NOT NULL DEFAULT '1' COMMENT '状态（0：停用，1：启用 2:逻辑删除）',
   `create_user_code` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '创建人',
   `create_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
@@ -302,21 +383,6 @@ CREATE TABLE IF NOT EXISTS `spell_untility` (
   `update_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '修改时间',
 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='拼音闯关-选项表';
-
-CREATE TABLE IF NOT EXISTS `spread_account` (
-  `id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '推广总计id',
-  `spreader_id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '推广者id',
-  `unsettleable_commission_amount` decimal(20,2) NOT NULL DEFAULT '0.00' COMMENT '待结算佣金金额',
-  `settleable_commission_amount` decimal(20,2) NOT NULL DEFAULT '0.00' COMMENT '可结算佣金金额',
-  `applied_settlement_commission_amount` decimal(20,2) NOT NULL DEFAULT '0.00' COMMENT '申请结算佣金金额',
-  `settled_commission_amount` decimal(20,2) NOT NULL DEFAULT '0.00' COMMENT '已结算佣金金额',
-  `status` tinyint(4) NOT NULL DEFAULT '1' COMMENT '状态（0：停用，1：启用）',
-  `create_user_code` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '创建人',
-  `create_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  `update_user_code` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '修改人',
-  `update_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
-
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='推广者账户';
 
 ALTER TABLE `teacher`
   MODIFY COLUMN `account_id` varchar(36) NOT NULL COMMENT '帐号id' AFTER `name`,
